@@ -1,0 +1,91 @@
+<h1>{{title}}</h1>
+{{! 타이틀 영역을 강조하기 위해 h1 태그로 감싸준다. title은 서버에서 내려주는 변수이다.}}
+
+<input
+  {{! 아직 작동하진 않는다 기능을 만들어야함}}
+  type="text"
+  name="search"
+  id="search"
+  value="{{search}}"
+  {{! value에는 서버에서 받은 search 데이터를 넣습니다. 기본값은 빈 값입니다.}}
+  placeholder="검색어를 입력하세요."
+/>
+<button
+  onclick="location.href=`/?search=${document.getElementById('search').value}`"
+>검색</button>
+{{! 버튼 클릭 시 search 변수에 검색어 데이터를 담아서 서버로 보냄 클릭 시 search 변수에 검색창의 input 박스에 있는 데이터를 담아서 서버로 요청을 보냄}}
+
+<a href="/write">글쓰기</a>
+{{! 서버내 /write 홈페이지로 이동 }}
+<br />
+
+<div>
+  <table>
+    <thead>
+      <tr>
+        <th width="50%">제목</th>
+        <th>작성자</th>
+        <th>조회수</th>
+        <th>등록일</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{! 1. 게시글 데이터 표시 }}
+      {{! 서버에서는 home.handlebars를 그릴 때 post 변수에 게시물의 값들을 담아서 보내줍니다. 
+          post는 리스트이며, _id, title,writer, hits, createDt 데이터가 있습니다.
+          post를 반복해서 렌더링하기 위해 each 내장 함수를 사용했습니다. #each posts로 시작하고 /each로 종료합니다.
+          each 블록 내부에서는 {{명수명{{ 으로 post의 객체를 접근할 수 있습니다. 즉 게시물의 제목을 표시하기 위해
+          posts[0].title이 아니라 title을 사용합니다. }} 
+
+      {{#each posts}}
+        <tr>
+          <td><a href="/detail/{{_id}}">{{title}}</a></td>
+          {{! 상세 페이지 링크}}
+          {{! 상세 페이지로 이동 시 localhost:3000/detail/<문서Id>로 이동}}
+          <td>{{writer}}</td>
+          <td>{{hits}}</td>
+          <td>{{dataString createDt}}</td>
+          {{!2. dataString 헬퍼 함수 사용}}
+          {{! dateString은 미리 만들어둔 커핸들바 커스텀 헬퍼입니다. 생성일시 값인 createDt는 2022-04-07T16:04:46 496Z와 같은 
+              ISO 포맷으로 저장되어 있으며 이를 new Date(isoString).toLocaleDateString()을 사용해서 날짜만 보여주도록 변경했습니다. }}
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+{{! HTML에서 <를 표시할 때는 &lt;를 >를 표시 할 때는 &gt;를 사용한다.}}
+<div>
+  {{#with paginator}} {{!3. with 내장 헬퍼 함수 사용}}
+  
+  {{!4. root 서버의 원본 참조 시 사용}}
+  {{!root.search는 with 블록 안에서 search를 하는 경우 paginator.earch를 참조하게 되므로 서버가 보내준 원본의 값을 참좀하기 위해 사용했습니다.}}
+  <a href="/?page=1&search={{@root.search}}">&lt;&lt;</a>
+  {{#if hasPrev}}
+  <a href="/?page={{prevPage}}&search={{@root.search}}">&lt;</a>
+  {{! 6. 1페이지 인 경우 이전 페이지가 없으므로 링크가 없음}}
+  {{else}}
+  <a>&lt;</a>
+  {{/if}}
+  {{#each pageList}}
+  {{#if (eq . @root.paginator.page)}} {{! 5. eq 내장 헬퍼 함수 사용}}
+  {{!우선 #if 내장 함수를 사용했습니다. 괄호로 eq. root.paginator.page가 감싸져 있습니다. 함수 안에서 함수를 사용하는경우 괄호로 감쌉니다. eq는 우리가 만든 
+    커스텀 함수입니다. 두 값을 매개변수로 넘기고 같으면 true를 반환합니다. 여기서.은 pageList를 반복해서 렌더링할 떄의 값입니다. pageList 안의 페이지 숫자값이 됩니다.
+    대신 this를 사용할 수 도 있습니다. root.paginator.page는 with문 밑에 each 안에서 서버가 보내준 값을 참조하기 위해 사용했습니다. 즉 코드의 의미는 "현재 페이지와
+     루프로 가져온 페이지가 같으면 다음을 렌더링하라'입니다.}}
+  <a>{{.}}</a>
+  {{else}}
+  <a href="/?page={{.}}&search={{@root.search}}">{{.}}</a>
+  {{/if}}
+  {{/each}}
+  {{#if hasNext}}
+  <a href="/?page={{nextPage}}&search={{@root.search}}">&gt;</a>
+  {{! 6. 마지막 페이지인 경우 이전 페이지가 없으므로 링크가 삭제}}
+  {{else}}
+  <a>&gt;</a>
+  {{/if}}
+  <a href="/?page={{lastPage}}&search={{@root.search}}">&gt;&gt;</a>
+  {{/with}}
+  </div>
+
+  {{! 템플릿 코드가 복잡해보이지만, 크게는 게시글을 표시하기 위해 each를 사용해 posts를 반복하는 코드와 페이지네이터를 표현하는 코드로 구분한다.}}
